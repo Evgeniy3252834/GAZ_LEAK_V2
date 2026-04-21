@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import Mock, MagicMock
 from pathlib import Path
 from datetime import datetime
+from PIL import Image
 
 from src.domain.entities import LeakDetectionResult, VideoFrame
 from src.usecases.detect_leak import DetectLeakUseCase
@@ -20,9 +21,16 @@ class TestDetectLeakUseCase:
     @pytest.fixture
     def mock_video_processor(self):
         processor = Mock()
+        
+        # Создаем реальное тестовое изображение
+        img = Image.new('RGB', (224, 224), color='red')
+        import io
+        img_byte_arr = io.BytesIO()
+        img.save(img_byte_arr, format='PNG')
+        
         frame = VideoFrame(
             timestamp=datetime.now(),
-            thermal_image=b'test_image_data',
+            thermal_image=img_byte_arr.getvalue(),
             frame_index=0
         )
         processor.extract_frames.return_value = [frame]

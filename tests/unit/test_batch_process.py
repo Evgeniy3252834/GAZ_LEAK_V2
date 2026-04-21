@@ -23,17 +23,18 @@ class TestBatchProcessUseCase:
         return mock
     
     def test_process_directory_idempotent(self, tmp_path, mock_detect_leak):
-        # Создаем тестовые видео
+        # Создаем тестовые директории
         input_dir = tmp_path / "input"
         input_dir.mkdir()
         output_dir = tmp_path / "output"
+        output_dir.mkdir()
         
+        # Создаем тестовое видео
         video_file = input_dir / "test1.mp4"
         video_file.touch()
         
         # Создаем файл .done для имитации уже обработанного видео
         done_file = output_dir / "test1.mp4.done"
-        done_file.parent.mkdir(exist_ok=True)
         done_file.touch()
         
         batch_processor = BatchProcessUseCase(
@@ -46,3 +47,25 @@ class TestBatchProcessUseCase:
         
         # Проверяем, что process_video не был вызван для уже обработанного видео
         mock_detect_leak.process_video.assert_not_called()
+    
+    def test_process_directory_new_video(self, tmp_path, mock_detect_leak):
+        # Создаем тестовые директории
+        input_dir = tmp_path / "input"
+        input_dir.mkdir()
+        output_dir = tmp_path / "output"
+        output_dir.mkdir()
+        
+        # Создаем новое видео (без .done файла)
+        video_file = input_dir / "test2.mp4"
+        video_file.touch()
+        
+        batch_processor = BatchProcessUseCase(
+            detect_leak_usecase=mock_detect_leak,
+            max_workers=1
+        )
+        
+        # Обрабатываем директорию
+        batch_processor.process_directory(input_dir, output_dir)
+        
+        # Проверяем, что process_video был вызван
+        mock_detect_leak.process_video.assert_called_once()
