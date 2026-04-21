@@ -1,0 +1,132 @@
+version: '3.8'
+
+services:
+  # API сервис
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.app
+    image: gas-leak-detector:latest
+    command: python -m src.main --mode api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../data:/data
+      - ../models:/app/models
+      - ../results:/app/results
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - DATABASE_URL=postgresql://user:password@postgres:5432/gas_leak
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - gas-leak-network
+    restart: unless-stopped
+
+  # Worker для фоновой обработки
+  worker:
+    image: gas-leak-detector:latest
+    command: python -m src.main --mode worker
+    volumes:
+      - ../data:/data
+      - ../models:/app/models
+      - ../results:/app/results
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - DATABASE_URL=postgresql://user:password@postgres:5432/gas_leak
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - gas-leak-network
+    restart: unless-stopped
+
+  # Postgres для хранения результатов
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: gas_leak
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - gas-leak-network
+    restart: unless-stopped
+
+  # Redis для кэша и брокера сообщений
+  redis:
+    image: redis:6-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - gas-leak-network
+    restart: unless-stopped
+
+  # Airflow веб-сервер
+  airflow-webserver:
+    image: apache/airflow:2.5.0
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://user:password@postgres/airflow
+      - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://user:password@postgres/airflow
+      - AIRFLOW__CELERY__BROKER_URL=redis://redis:6379/0
+    volumes:
+      - ../dags:/opt/airflow/dags
+      - ../data:/opt/airflow/data
+      - ../logs:/opt/airflow/logs
+    ports:
+      - "8080:8080"
+    command: webserver
+    networks:
+      - gas-leak-network
+    restart: unless-stopped
+
+  # Airflow scheduler
+  airflow-scheduler:
+    image: apache/airflow:2.5.0
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://user:password@postgres/airflow
+      - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://user:password@postgres/airflow
+      - AIRFLOW__CELERY__BROKER_URL=redis://redis:6379/0
+    volumes:
+      - ../dags:/opt/airflow/dags
+      - ../data:/opt/airflow/data
+      - ../logs:/opt/airflow/logs
+    command: scheduler
+    networks:
+      - gas-leak-network
+    restart: unless-stopped
+
+  # Nginx для reverse proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - api
+      - airflow-webserver
+    networks:
+      - gas-leak-network
+    restart: unless-stopped
+
+networks:
+  gas-leak-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

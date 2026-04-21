@@ -1,0 +1,17 @@
+[Unit]
+Description=Gas Leak Detection Service
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/gas-leak-detection
+ExecStartPre=/usr/bin/docker-compose -f docker/docker-compose.full.yml down
+ExecStart=/usr/bin/docker-compose -f docker/docker-compose.full.yml up
+ExecStop=/usr/bin/docker-compose -f docker/docker-compose.full.yml down
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
