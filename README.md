@@ -286,88 +286,88 @@ ps aux | grep python
 | `gdown` не скачивает модель | Скачать вручную по ссылке: https://drive.google.com/file/d/1oPftKdKgtSaGc9__v9eoGHnhqM5JcHWk/view |
 
 ## 📁 Структура проекта
+
+# GAZ_LEAK_V2
+
+```
 GAZ_LEAK_V2/
 │
-├── .github/workflows/ > CI/CD пайплайны GitHub Actions
-│ └── deploy.yml > Автоматический деплой на сервер
+├── .github/workflows/
+│   └── deploy.yml
 │
-├── config/ > Конфигурация проекта
-│ ├── init.py
-│ └── config.py > Централизованный конфиг (все переменные)
+├── config/
+│   ├── __init__.py
+│   └── config.py
 │
-├── dags/ > Airflow DAG для оркестрации
-│ └── gas_leak_detection_dag.py
+├── dags/
+│   └── gas_leak_detection_dag.py
 │
-├── docker/ > Docker файлы для контейнеризации
-│ ├── Dockerfile.app > Образ приложения
-│ ├── docker-compose.full.yml > Полный стек (API, worker, БД, Redis, Airflow, Nginx)
-│ └── nginx.conf > Reverse proxy конфигурация
+├── docker/
+│   ├── Dockerfile.app
+│   ├── docker-compose.full.yml
+│   └── nginx.conf
 │
-├── models/ > Обученные модели
-│ └── thermal_model.pth > Веса модели ResNet18 (44 MB)
+├── models/
+│   └── thermal_model.pth
 │
-├── requirements/ > Зависимости Python
-│ ├── base.txt > Основные зависимости
-│ ├── dev.txt > Для разработки (тесты, линтеры)
-│ └── prod.txt > Для production
+├── requirements/
+│   ├── base.txt
+│   ├── dev.txt
+│   └── prod.txt
 │
-├── scripts/ > Вспомогательные скрипты
-│ ├── backfill.py > Бэкфилл (восстановление состояния)
-│ ├── deploy.sh > Скрипт деплоя
-│ └── run_checks.sh > Проверка системы
+├── scripts/
+│   ├── backfill.py
+│   ├── deploy.sh
+│   └── run_checks.sh
 │
-├── src/ > Исходный код (Clean Architecture)
-│ ├── init.py
-│ │
-│ ├── api/ > API слой (входные данные)
-│ │ ├── init.py
-│ │ └── batch_api.py > FastAPI эндпоинты
-│ │
-│ ├── cli/ > CLI слой (командная строка)
-│ │ ├── init.py
-│ │ └── batch_process.py > CLI для батчевой обработки
-│ │
-│ ├── domain/ > Domain слой (ядро бизнес-логики)
-│ │ ├── init.py
-│ │ ├── entities.py > Бизнес-сущности
-│ │ └── interfaces.py > Абстракции (порт)
-│ │
-│ ├── infrastructure/ > Infrastructure слой (реализации)
-│ │ ├── init.py
-│ │ ├── model_inference.py > PyTorch модель
-│ │ ├── repository.py > SQLite / PostgreSQL хранилище
-│ │ └── video_processor.py > OpenCV обработка видео
-│ │
-│ ├── usecases/ > Use Cases слой (бизнес-логика)
-│ │ ├── init.py
-│ │ ├── batch_process.py > Батчевая обработка
-│ │ └── detect_leak.py > Детекция утечки
-│ │
-│ └── main.py > Точка входа (CLI аргументы)
+├── src/
+│   ├── __init__.py
+│   ├── api/
+│   │   ├── __init__.py
+│   │   └── batch_api.py
+│   ├── cli/
+│   │   ├── __init__.py
+│   │   └── batch_process.py
+│   ├── domain/
+│   │   ├── __init__.py
+│   │   ├── entities.py
+│   │   └── interfaces.py
+│   ├── infrastructure/
+│   │   ├── __init__.py
+│   │   ├── model_inference.py
+│   │   ├── repository.py
+│   │   └── video_processor.py
+│   ├── usecases/
+│   │   ├── __init__.py
+│   │   ├── batch_process.py
+│   │   └── detect_leak.py
+│   └── main.py
 │
-├── tests/ > Тесты
-│ ├── init.py
-│ ├── unit/ > Юнит-тесты (32 теста)
-│ │ ├── test_batch_process.py
-│ │ ├── test_detect_leak.py
-│ │ ├── test_model_inference.py
-│ │ ├── test_repository.py
-│ │ ├── test_api_endpoints.py
-│ │ └── ...
-│ └── fixtures/ > Тестовые данные
-│ └── test_image.png
+├── tests/
+│   ├── __init__.py
+│   ├── unit/
+│   │   ├── test_batch_process.py
+│   │   ├── test_detect_leak.py
+│   │   ├── test_model_inference.py
+│   │   ├── test_repository.py
+│   │   ├── test_api_endpoints.py
+│   │   └── ...
+│   └── fixtures/
+│       └── test_image.png
 │
-├── data/ > Данные (создаётся при запуске)
-│ ├── input_videos/ > Видео для обработки
-│ ├── processed/ > Маркеры обработанных видео (.done)
-│ └── results/ > Результаты детекции
+├── data/
+│   ├── input_videos/
+│   ├── processed/
+│   └── results/
 │
-├── logs/ > Логи приложения
+├── logs/
 │
-├── .env.example > Пример переменных окружения
+├── .env.example
 ├── .gitignore
 ├── Makefile
 └── README.md
+```
+
 
 ## Направление зависимостей (по Clean Architecture)
 Внешний мир (HTTP/CLI) → API/CLI → Use Cases → Domain
