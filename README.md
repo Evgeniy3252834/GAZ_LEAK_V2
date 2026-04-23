@@ -63,7 +63,7 @@
 
 ```bash
 git clone https://github.com/Evgeniy3252834/GAZ_LEAK_V2.git
-cd GAZ_LEAK_V2
+cd GAZ_LEAK_V2```
 
 #### Шаг 2: Создание виртуального окружения
 
@@ -71,35 +71,37 @@ Windows (Command Prompt):
 
 ```cmd
 python -m venv venv
-venv\Scripts\activate.bat
+venv\Scripts\activate.bat```
+
 Windows (Git Bash):
 
 ```bash
 python -m venv venv
-source venv/Scripts/activate
+source venv/Scripts/activate```
+
 macOS / Linux:
 
 ```bash
 python3 -m venv venv
-source venv/bin/activate
+source venv/bin/activate```
 
 #### Шаг 3: Установка зависимостей
 
 ```bash
 pip install --upgrade pip
-pip install -r requirements/base.txt
+pip install -r requirements/base.txt```
 
 #### Шаг 4: Настройка переменных окружения
 
 ```bash
-cp .env.example .env
+cp .env.example .env```
 
 #### Шаг 5: Загрузка модели
 
 ##### Способ 1 - через gdown (рекомендуется):
 ```bash
 pip install gdown
-gdown "https://drive.google.com/uc?id=1oPftKdKgtSaGc9__v9eoGHnhqM5JcHWk" -O models/thermal_model.pth
+gdown "https://drive.google.com/uc?id=1oPftKdKgtSaGc9__v9eoGHnhqM5JcHWk" -O models/thermal_model.pth```
 
 ##### Способ 2 - вручную:
 - Скачайте модель по ссылке: https://drive.google.com/file/d/1oPftKdKgtSaGc9__v9eoGHnhqM5JcHWk/view
@@ -111,12 +113,12 @@ gdown "https://drive.google.com/uc?id=1oPftKdKgtSaGc9__v9eoGHnhqM5JcHWk" -O mode
 #### Шаг 6: Создание директорий для данных
 
 ```bash
-mkdir -p data/input_videos data/processed data/results logs
+mkdir -p data/input_videos data/processed data/results logs```
 
 #### Шаг 7: Запуск API сервера
 
 ```bash
-python src/main.py --mode api
+python src/main.py --mode api```
 **Ожидаемый вывод:**
 INFO: Started server process [xxxxx]
 INFO: Uvicorn running on http://0.0.0.0:8000
@@ -126,19 +128,20 @@ INFO: Uvicorn running on http://0.0.0.0:8000
 Через curl:
 
 ```bash
-curl http://localhost:8000/health
+curl http://localhost:8000/health```
+
 Через браузер:
 Откройте http://localhost:8000/health
 
 Ожидаемый ответ:
 
 ```json
-{"status":"healthy","timestamp":"2026-04-23T20:37:57.949452"}
+{"status":"healthy","timestamp":"2026-04-23T20:37:57.949452"}```
 
 #### Шаг 9: Запуск тестов (проверка покрытия)
 
 ```bash
-pytest tests/unit/ -v --cov=src --cov-report=term
+pytest tests/unit/ -v --cov=src --cov-report=term```
 
 Ожидаемый результат:
 
@@ -171,7 +174,7 @@ TOTAL                                    491    146    73%
 #### Шаг 1: Подключение к серверу
 
 ```bash
-ssh root@89.108.78.157
+ssh root@89.108.78.157```
 
 #### Шаг 2: Установка Docker
 
@@ -180,40 +183,40 @@ curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh
 apt install docker-compose-plugin -y
 
 docker --version
-docker compose version
+docker compose version```
 
 #### Шаг 3: Клонирование проекта
 
 ```bash
 cd /opt
 git clone https://github.com/Evgeniy3252834/GAZ_LEAK_V2.git gas-leak
-cd gas-leak
+cd gas-leak```
 
 #### Шаг 4: Установка Python и зависимостей
 
 ```bash
 apt install python3-pip -y
 pip install -r requirements/base.txt --break-system-packages
-pip install opencv-python-headless --break-system-packages
+pip install opencv-python-headless --break-system-packages```
 
 #### Шаг 5: Загрузка модели
 
 ```bash
 pip install gdown --break-system-packages
-gdown "https://drive.google.com/uc?id=1oPftKdKgtSaGc9__v9eoGHnhqM5JcHWk" -O models/thermal_model.pth
+gdown "https://drive.google.com/uc?id=1oPftKdKgtSaGc9__v9eoGHnhqM5JcHWk" -O models/thermal_model.pth```
 
 #### Шаг 6: Настройка окружения
 
 ```bash
 mkdir -p data/input_videos data/processed data/results logs
 
-cp .env.example .env
+cp .env.example .env```
 
 #### Шаг 7: Запуск API сервера
 
 ##### Вариант А: Запуск в фоне (рекомендуется)
 ```bash
-nohup python3 -m src.main --mode api > logs/api.log 2>&1 &
+nohup python3 -m src.main --mode api > logs/api.log 2>&1 &```
 
 ##### Вариант Б: Запуск через systemd (автозапуск после перезагрузки)
 ```bash
@@ -236,18 +239,18 @@ EOF
 
 systemctl daemon-reload
 systemctl enable gas-leak-api
-systemctl start gas-leak-api
+systemctl start gas-leak-api```
 
 ##### Вариант В: Запуск через Docker Compose (полный стек)
 ```bash
-docker compose -f docker/docker-compose.full.yml up -d
+docker compose -f docker/docker-compose.full.yml up -d```
 
 #### Шаг 8: Проверка работоспособности
 
 ```bash
-curl http://localhost:8000/health
+curl http://localhost:8000/health```
 
-{"status":"healthy","timestamp":"2026-04-23T20:37:57.949452"}
+**{"status":"healthy","timestamp":"2026-04-23T20:37:57.949452"}**
 
 #### Шаг 9: Доступ из браузера
 
@@ -265,7 +268,7 @@ systemctl restart gas-leak-api
 
 pkill -f "src.main"
 
-ps aux | grep python
+ps aux | grep python```
 
 ### 🛠️ Устранение неполадок
 
