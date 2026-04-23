@@ -1,3 +1,8 @@
+
+[![Coverage](https://img.shields.io/badge/coverage-73%25-brightgreen.svg)](https://github.com/Evgeniy3252834/GAZ_LEAK_V2)
+
+
+
 markdown
 # Gas Leak Detection System
 
