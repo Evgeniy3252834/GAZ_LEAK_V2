@@ -1,539 +1,434 @@
+# 🔍 Gas Leak Detection System
 
+<div align="center">
 
-markdown
-# Gas Leak Detection System
+[![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python&logoColor=white)](https://www.python.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red?logo=pytorch&logoColor=white)](https://pytorch.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![OpenCV](https://img.shields.io/badge/OpenCV-4.8+-blue?logo=opencv&logoColor=white)](https://opencv.org/)
+[![Docker](https://img.shields.io/badge/Docker-ready-blue?logo=docker&logoColor=white)](https://www.docker.com/)
+[![Airflow](https://img.shields.io/badge/Airflow-2.5+-orange?logo=apacheairflow&logoColor=white)](https://airflow.apache.org/)
+[![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+[![Nginx](https://img.shields.io/badge/Nginx-009639?logo=nginx&logoColor=white)](https://nginx.org/)
+[![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)](https://github.com/features/actions)
+[![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[![Coverage](https://img.shields.io/badge/coverage-73%25-brightgreen.svg)](https://github.com/Evgeniy3252834/GAZ_LEAK_V2)
-[![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)](https://pytorch.org/)
-[![Docker](https://img.shields.io/badge/Docker-ready-blue.svg)](https://www.docker.com/)
-[![Airflow](https://img.shields.io/badge/Airflow-2.5+-orange.svg)](https://airflow.apache.org/)
-[![License](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
+</div>
 
-**Система детекции утечек газа с помощью дронов** — использует компьютерное зрение для анализа тепловизионных изображений и автоматического обнаружения шлейфа газа.
-
----
-
-## 📋 Оглавление
-
-- [Описание проекта](#описание-проекта)
-- [Архитектура](#архитектура)
-- [Технологии](#технологии)
-- [Сущности предметной области](#сущности-предметной-области)
-- [Внешние системы](#внешние-системы)
-- [Батчевый сервис](#батчевый-сервис)
-- [Пошаговая установка](#пошаговая-установка)
-- [Запуск](#запуск)
-- [API Эндпоинты](#api-эндпоинты)
-- [Тестирование](#тестирование)
-- [Docker](#docker)
-- [Airflow DAG](#airflow-dag)
-- [Идемпотентность и Бэкфилл](#идемпотентность-и-бэкфилл)
-- [Переменные окружения](#переменные-окружения)
-- [Структура проекта](#структура-проекта)
-- [Устранение неполадок](#устранение-неполадок)
-- [Лицензия](#лицензия)
+Система детекции утечек газа с помощью дронов, использующая компьютерное зрение для анализа тепловизионных изображений.
 
 ---
 
-## Описание проекта
+## 📖 Краткое описание логики
 
-Система анализирует видео с тепловизора и RGB-камеры, определяет наличие шлейфа газа и при обнаружении отправляет дрон для подтверждения газоанализатором.
+Дрон летит над трубопроводом и записывает видео с тепловизора. Видео передается в систему, где нейросетевая модель (ResNet18) анализирует каждый кадр. Модель определяет наличие шлейфа газа и выдает вероятность утечки от 0 до 1. Если вероятность превышает порог 0.5, система фиксирует потенциальную утечку и отправляет дрон на подтверждение газоанализатором.
 
-### Основные возможности
+### 🏗️ Архитектура
 
-| Возможность | Описание |
-|-------------|----------|
-| 🔍 **Детекция утечек** | Анализ тепловизионных изображений через нейросеть (ResNet18) |
-| 📹 **Обработка видео** | Извлечение кадров и пакетная обработка |
-| 🚀 **API сервер** | REST API для интеграции с дронами (FastAPI) |
-| ⚡ **Асинхронная обработка** | Фоновые воркеры для длительных задач |
-| 📊 **Оркестрация** | Airflow DAG с DockerOperator |
-| 🐳 **Docker контейнеризация** | Простое развертывание |
-| 🔒 **Идемпотентность** | Защита от повторной обработки видео |
-| 📦 **Батчевая обработка** | Массовая обработка видеофайлов |
+Проект построен на **чистой архитектуре (Clean Architecture)** с разделением на независимые слои:
 
----
-
-## Архитектура
-
-Проект построен на **Clean Architecture** (Чистая архитектура) с разделением на независимые слои:
-┌─────────────────────────────────────────────────────────────────────┐
-│ ВНЕШНИЙ МИР │
-│ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ │
-│ │ Дрон │ │Тепловизор│ │RGB камера│ │Газоанализатор│ │
-│ └────┬────┘ └────┬────┘ └────┬────┘ └──────┬──────┘ │
-│ └────────────┴────────────┴──────────────┘ │
-│ │ │
-│ ▼ │
-│ ┌───────────────────────────────────────────────────────────────┐ │
-│ │ API Gateway (Nginx) │ │
-│ └───────────────────────────────────────────────────────────────┘ │
-│ │ │
-│ ┌───────────────────────────┼───────────────────────────────────┐ │
-│ │ ▼ │ │
-│ │ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ │ │
-│ │ │API (FastAPI)│ │ Worker 1 │ │ Worker N │ │ │
-│ │ │ Port 8000 │ │ (фоновый) │ │ (фоновый) │ │ │
-│ │ └──────┬──────┘ └──────┬──────┘ └──────┬──────┘ │ │
-│ │ │ │ │ │ │
-│ │ └────────────────┼────────────────┘ │ │
-│ │ ▼ │ │
-│ │ ┌─────────────────────────────────────────────────────┐ │ │
-│ │ │ USE CASES │ │ │
-│ │ │ • DetectLeakUseCase │ │ │
-│ │ │ • BatchProcessUseCase │ │ │
-│ │ └─────────────────────────────────────────────────────┘ │ │
-│ │ │ │ │
-│ │ ┌─────────────────────────────────────────────────────┐ │ │
-│ │ │ DOMAIN (Entities) │ │ │
-│ │ │ • LeakDetectionResult │ │ │
-│ │ │ • VideoFrame │ │ │
-│ │ │ • BatchJob │ │ │
-│ │ │ • LeakConfirmation │ │ │
-│ │ └─────────────────────────────────────────────────────┘ │ │
-│ │ │ │ │
-│ │ ┌───────────┐ ┌───────────┐ ┌───────────┐ │ │
-│ │ │ Model │ │ Video │ │ Repository│ │ │
-│ │ │ Inference │ │ Processor │ │ (SQLite/ │ │ │
-│ │ │ (PyTorch) │ │ (OpenCV) │ │ Postgres) │ │ │
-│ │ └───────────┘ └───────────┘ └───────────┘ │ │
-│ └────────────────────────────────────────────────────────────────┘ │
-│ │
-│ ┌─────────────────────────────────────────────────────────────────┐│
-│ │ ORCHESTRATION (Airflow) ││
-│ │ • check_for_new_videos → backfill → process_videos_batch ││
-│ └─────────────────────────────────────────────────────────────────┘│
-└──────────────────────────────────────────────────────────────────────┘
-
-text
-
-### Слои архитектуры
-
-| Слой | Назначение | Файлы |
-|------|------------|-------|
-| **Domain** | Бизнес-сущности и интерфейсы | `src/domain/` |
+| Слой | Назначение | Расположение |
+|------|-----------|--------------|
+| **Domain** | Сущности и интерфейсы | `src/domain/` |
 | **Use Cases** | Бизнес-логика | `src/usecases/` |
-| **Infrastructure** | Реализация интерфейсов (БД, модель, видео) | `src/infrastructure/` |
+| **Infrastructure** | Реализации (модель, видео, БД) | `src/infrastructure/` |
 | **API** | REST эндпоинты | `src/api/` |
 | **CLI** | Командная строка | `src/cli/` |
 
----
+### 🛠️ Технологический стек
 
-## Технологии
+| Компонент | Технология |
+|-----------|------------|
+| Язык | Python 3.12 |
+| ML фреймворк | PyTorch, ResNet18 |
+| Обработка видео | OpenCV |
+| API сервер | FastAPI, Uvicorn |
+| База данных | SQLite / PostgreSQL |
+| Оркестрация | Apache Airflow |
+| Контейнеризация | Docker, Docker Compose |
 
-| Компонент | Технология | Версия |
-|-----------|------------|--------|
-| **Язык** | Python | 3.9+ |
-| **API фреймворк** | FastAPI | 0.100+ |
-| **ML фреймворк** | PyTorch | 2.0+ |
-| **Векторные вычисления** | NumPy | 1.24+ |
-| **Работа с изображениями** | Pillow, OpenCV | 10.0+, 4.8+ |
-| **База данных** | SQLite / PostgreSQL | - |
-| **Кэширование** | Redis | 6+ |
-| **Оркестрация** | Apache Airflow | 2.5+ |
-| **Контейнеризация** | Docker, Docker Compose | - |
-| **Web сервер** | Nginx | Alpine |
-| **Тестирование** | pytest, pytest-cov | 7.4+, 4.1+ |
+## 🖥️ Как воспроизвести результат (локальный запуск)
 
----
-
-## Сущности предметной области
-
-### 1. `LeakDetectionResult` - Результат детекции утечки
-
-```python
-@dataclass
-class LeakDetectionResult:
-    frame_id: str              # ID кадра
-    timestamp: datetime        # Время детекции
-    leak_probability: float    # Вероятность утечки (0-1)
-    is_leak: bool              # Есть ли утечка
-    confidence: float          # Уверенность модели
-    video_path: str            # Путь к видео
-    bounding_box: Optional[tuple]  # Координаты шлейфа
-### 2. `VideoFrame` - Видеофрейм для анализа
-
-```python
-@dataclass
-class VideoFrame:
-    timestamp: datetime        # Время кадра
-    thermal_image: bytes       # Тепловизионное изображение
-    rgb_image: Optional[bytes] # RGB изображение (опционально)
-    frame_index: int           # Номер кадра
-    video_path: str            # Путь к видео
-### 3. `BatchJob` - Батчевая задача
-
-```python
-@dataclass
-class BatchJob:
-    job_id: str                # Уникальный ID задачи
-    video_paths: List[str]     # Список видео для обработки
-    status: ProcessingStatus   # Статус обработки
-    created_at: datetime       # Время создания
-    updated_at: datetime       # Время обновления
-    results: List[LeakDetectionResult]  # Результаты
-    error_message: Optional[str]        # Сообщение об ошибке
-### 4. `LeakConfirmation` - Подтверждение утечки
-
-```python
-@dataclass
-class LeakConfirmation:
-    leak_id: str
-    detection_result: LeakDetectionResult
-    confirmed: bool
-    gas_concentration: Optional[float]
-    confirmed_at: datetime
-    status: LeakStatus
-### 5. Enum'ы для статусов
-
-```python
-from enum import Enum
-
-class LeakStatus(Enum):
-    PENDING = "pending"
-    CONFIRMED = "confirmed"
-    FALSE_POSITIVE = "false_positive"
-    ERROR = "error"
-
-class ProcessingStatus(Enum):
-    UPLOADED = "uploaded"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
-# Внешние системы
-# Внутренние компоненты
-
-| Компонент | Назначение | Технология |
-|-----------|------------|-------------|
-| API сервер | Прием запросов, управление задачами | FastAPI, Uvicorn |
-| Worker | Фоновая обработка видео | Python, threading |
-| Модель детекции | Анализ тепловизионных изображений | PyTorch, ResNet18 |
-| Видео процессор | Извлечение кадров из видео | OpenCV |
-| Репозиторий | Хранение результатов | SQLite / PostgreSQL |
-
-## Внешние системы (третьи стороны)
-
-| Система | Назначение | Взаимодействие |
-|---------|------------|----------------|
-| PostgreSQL | Хранение результатов детекций | SQLAlchemy / asyncpg |
-| Redis | Кэширование и брокер сообщений | redis-py |
-| Airflow | Оркестрация батчевой обработки | DockerOperator |
-| Nginx | Reverse proxy и балансировка | HTTP проксирование |
-| Docker | Контейнеризация сервисов | Docker SDK |
-
-## Внешние устройства
-
-| Устройство | Назначение | Взаимодействие |
-|------------|------------|----------------|
-| Дрон | Сбор видео, спуск для подтверждения | API запросы |
-| Тепловизор | Съемка тепловизионных видео | Передача файлов |
-| RGB камера | Съемка обычного видео | Передача файлов |
-| Газоанализатор | Подтверждение утечки на месте | Через дрон |
-
-# Батчевый сервис
-
-## Типы задач
-
-| Тип задачи | Описание | Где используется |
-|------------|----------|------------------|
-| check_for_new_videos | Проверяет наличие новых видео | Airflow DAG |
-| backfill_processed_videos | Восстанавливает состояние обработанных видео | Airflow DAG, backfill.py |
-| process_videos_batch | Запускает Docker контейнер с обработкой | Airflow DAG (DockerOperator) |
-| process_single_video | Обрабатывает одно видео через API | API endpoint |
-| process_directory_batch | Обрабатывает всю директорию с видео | CLI, Use Case |
-
-## Передача секретов
-
-Секреты передаются через переменные окружения:
-
-```bash
-# .env файл
-ENVIRONMENT=production
-LOG_LEVEL=INFO
-USE_GPU=false
-DATABASE_URL=postgresql://user:password@postgres:5432/gas_leak
-REDIS_URL=redis://redis:6379/0
-
-# GAZ_LEAK_V2 - Детектор утечек газа
-
-## Airflow DAG Пример
-
-```python
-DockerOperator(
-    environment={
-        'DATABASE_URL': Variable.get('DATABASE_URL'),
-    }
-)
-
-# Пошаговая установка
-
-## Требования
+### Требования
 
 | Компонент | Версия | Проверка |
 |-----------|--------|----------|
 | Python | 3.9 или выше | `python --version` |
-| pip | 23.0 или выше | `pip --version` |
 | Git | любая | `git --version` |
+| pip | 23.0 или выше | `pip --version` |
 
-## Шаг 1: Клонирование репозитория
+### Пошаговая инструкция
+
+#### Шаг 1: Клонирование репозитория
 
 ```bash
 git clone https://github.com/Evgeniy3252834/GAZ_LEAK_V2.git
 cd GAZ_LEAK_V2
 
-## Шаг 2: Создание виртуального окружения
+#### Шаг 2: Создание виртуального окружения
 
-Windows (Command Prompt или PowerShell):
+Windows (Command Prompt):
 
-`python -m venv venv`
-`venv\Scripts\activate.bat`
-
+```cmd
+python -m venv venv
+venv\Scripts\activate.bat
 Windows (Git Bash):
 
-`python -m venv venv`
-`source venv/Scripts/activate`
-
+```bash
+python -m venv venv
+source venv/Scripts/activate
 macOS / Linux:
 
-`python3 -m venv venv`
-`source venv/bin/activate`
+```bash
+python3 -m venv venv
+source venv/bin/activate
 
-## Шаг 3: Установка зависимостей
+#### Шаг 3: Установка зависимостей
 
-`pip install --upgrade pip`
-`pip install -r requirements/base.txt`
+```bash
+pip install --upgrade pip
+pip install -r requirements/base.txt
 
-## Шаг 4: Настройка переменных окружения
+#### Шаг 4: Настройка переменных окружения
 
-`cp .env.example .env`
+```bash
+cp .env.example .env
 
-Содержимое `.env` (можно оставить по умолчанию):
+#### Шаг 5: Загрузка модели
 
-`ENVIRONMENT=development`
-`LOG_LEVEL=INFO`
-`USE_GPU=false`
-`DATABASE_URL=sqlite:///./gas_leak.db`
-`REDIS_URL=redis://localhost:6379/0`
+##### Способ 1 - через gdown (рекомендуется):
+```bash
+pip install gdown
+gdown "https://drive.google.com/uc?id=1oPftKdKgtSaGc9__v9eoGHnhqM5JcHWk" -O models/thermal_model.pth
 
-## Шаг 5: Загрузка модели
+##### Способ 2 - вручную:
+- Скачайте модель по ссылке: https://drive.google.com/file/d/1oPftKdKgtSaGc9__v9eoGHnhqM5JcHWk/view
 
-Способ 1 - через gdown (рекомендуется):
+- Поместите файл в папку models/
 
-`pip install gdown`
-`gdown "https://drive.google.com/uc?id=1oPftKdKgtSaGc9__v9eoGHnhqM5JcHWk" -O models/thermal_model.pth`
+- Переименуйте в thermal_model.pth (если нужно)
 
-Способ 2 - вручную:
+#### Шаг 6: Создание директорий для данных
 
-Скачайте модель по ссылке: https://drive.google.com/file/d/1oPftKdKgtSaGc9__v9eoGHnhqM5JcHWk/view
-Поместите файл в папку models/
-Переименуйте в thermal_model.pth (если нужно)
+```bash
+mkdir -p data/input_videos data/processed data/results logs
 
-Способ 3 - тестовая модель:
+#### Шаг 7: Запуск API сервера
 
-`python -c "`
-`import torch`
-`import torch.nn as nn`
-`import torchvision.models as models`
+```bash
+python src/main.py --mode api
+**Ожидаемый вывод:**
+INFO: Started server process [xxxxx]
+INFO: Uvicorn running on http://0.0.0.0:8000
 
-`class ThermalLeakDetector(nn.Module):`
-`    def __init__(self):`
-`        super().__init__()`
-`        self.model = models.resnet18(weights=None)`
-`        self.model.fc = nn.Linear(self.model.fc.in_features, 2)`
-`    `
-`    def forward(self, x):`
-`        return self.model(x)`
+#### Шаг 8: Проверка работы API
 
-`torch.save(ThermalLeakDetector().state_dict(), 'models/thermal_model.pth')`
-`print('✅ Тестовая модель создана')`
-`"`
+Через curl:
 
-## Шаг 6: Создание директорий для данных
-
-`mkdir -p data/input_videos`
-`mkdir -p data/processed`
-`mkdir -p data/results`
-`mkdir -p logs`
-
-## Шаг 7: Проверка установки
-
-`python -c "`
-`import sys`
-`sys.path.insert(0, '.')`
-`from src.infrastructure.model_inference import PyTorchModelInference`
-`print('✅ Все зависимости установлены корректно')`
-`"`
-
-## Запуск
-
-Быстрый запуск (API сервер):
-
-`python src/main.py --mode api`
-
-Ожидаемый вывод:
-
-`INFO:     Started server process [xxxxx]`
-`INFO:     Waiting for application startup.`
-`INFO:     Application startup complete.`
-`INFO:     Uvicorn running on http://0.0.0.0:8000`
-
-Запуск воркера:
-
-`python src/main.py --mode worker`
-
-Запуск батчевой обработки:
-
-`python src/main.py --mode batch --input-dir ./data/input_videos --output-dir ./data/results`
-
-Проверка работы API:
-
-`curl http://localhost:8000/health`
+```bash
+curl http://localhost:8000/health
+Через браузер:
+Откройте http://localhost:8000/health
 
 Ожидаемый ответ:
 
-`{"status":"healthy","timestamp":"2024-01-01T12:00:00.000000"}`
+```json
+{"status":"healthy","timestamp":"2026-04-23T20:37:57.949452"}
 
-Запуск через Docker:
+#### Шаг 9: Запуск тестов (проверка покрытия)
 
-`docker build -f docker/Dockerfile.app -t gas-leak-detector:latest .`
-`docker run -d --name gas-leak-api -p 8000:8000 -v $(pwd)/data:/data -v $(pwd)/models:/app/models gas-leak-detector:latest`
-`curl http://localhost:8000/health`
-`docker stop gas-leak-api && docker rm gas-leak-api`
+```bash
+pytest tests/unit/ -v --cov=src --cov-report=term
 
-## API Эндпоинты
+Ожидаемый результат:
 
-| Метод | Эндпоинт | Описание |
-|-------|----------|----------|
-| GET | /health | Проверка здоровья сервиса |
-| GET | /docs | Swagger документация |
-| GET | /openapi.json | OpenAPI схема |
-| POST | /api/v1/process/video | Обработка одного видео |
-| POST | /api/v1/batch/process | Батчевая обработка |
-| GET | /api/v1/detections | Получение результатов |
+Name                                    Stmts   Miss  Cover
+-----------------------------------------------------------
+src/api/batch_api.py                      68      6    91%
+src/domain/entities.py                    49      1    98%
+src/usecases/batch_process.py             50      4    92%
+src/usecases/detect_leak.py               48      5    90%
+src/infrastructure/model_inference.py     55      3    95%
+src/infrastructure/repository.py          55      1    98%
+-----------------------------------------------------------
+TOTAL                                    491    146    73%
 
-## Примеры запросов
+============================== 32 passed in 5.78s ==============================
 
-Обработка одного видео:
+## 🚀 Как задеплоить на сервер
 
-`curl -X POST "http://localhost:8000/api/v1/process/video?video_path=data/input_videos/test.mp4"`
+### Требования к серверу
 
-Батчевая обработка:
+| Параметр | Рекомендация |
+|----------|--------------|
+| ОС | Ubuntu 22.04 или 24.04 LTS |
+| RAM | 4-8 ГБ |
+| CPU | 2-4 ядра |
+| Диск | 40-80 ГБ SSD |
 
-`curl -X POST "http://localhost:8000/api/v1/batch/process" \`
-`  -H "Content-Type: application/json" \`
-`  -d '{"video_paths": ["video1.mp4", "video2.mp4"], "callback_url": "https://example.com/callback"}'`
+### Пошаговая инструкция деплоя
 
-Получение результатов:
+#### Шаг 1: Подключение к серверу
 
-`curl "http://localhost:8000/api/v1/detections?limit=10"`
+```bash
+ssh root@89.108.78.157
 
-## Тестирование
+#### Шаг 2: Установка Docker
 
-Покрытие тестами: 73%
+```bash
+curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh
+apt install docker-compose-plugin -y
 
-| Компонент | Покрытие | Тестов |
-|-----------|----------|--------|
-| API (batch_api.py) | 91% | 11 |
-| Domain Entities | 98% | 5 |
-| Use Cases (batch_process) | 92% | 2 |
-| Use Cases (detect_leak) | 90% | 3 |
-| Model Inference | 95% | 3 |
-| Repository | 98% | 4 |
-| ИТОГО | 73% | 32 |
+docker --version
+docker compose version
 
-Запуск тестов:
+#### Шаг 3: Клонирование проекта
 
-`pytest tests/unit/ -v`
-`pytest tests/unit/ --cov=src --cov-report=term`
+```bash
+cd /opt
+git clone https://github.com/Evgeniy3252834/GAZ_LEAK_V2.git gas-leak
+cd gas-leak
 
-## Docker
+#### Шаг 4: Установка Python и зависимостей
 
-Образы:
+```bash
+apt install python3-pip -y
+pip install -r requirements/base.txt --break-system-packages
+pip install opencv-python-headless --break-system-packages
 
-| Образ | Назначение | Dockerfile |
-|-------|------------|------------|
-| gas-leak-detector:latest | Основной образ приложения | docker/Dockerfile.app |
+#### Шаг 5: Загрузка модели
 
-Полный стек (Docker Compose):
+```bash
+pip install gdown --break-system-packages
+gdown "https://drive.google.com/uc?id=1oPftKdKgtSaGc9__v9eoGHnhqM5JcHWk" -O models/thermal_model.pth
 
-| Сервис | Порт | Назначение |
-|--------|------|------------|
-| api | 8000 | API сервер |
-| worker | - | Фоновый воркер |
-| postgres | 5432 | База данных |
-| redis | 6379 | Кэш и брокер |
-| airflow-webserver | 8080 | Airflow UI |
-| nginx | 80 | Reverse proxy |
+#### Шаг 6: Настройка окружения
 
-`cd docker`
-`docker-compose -f docker-compose.full.yml up -d`
-`docker-compose -f docker-compose.full.yml ps`
-`docker-compose -f docker-compose.full.yml down`
+```bash
+mkdir -p data/input_videos data/processed data/results logs
 
-## Airflow DAG
+cp .env.example .env
 
-Структура DAG:
+#### Шаг 7: Запуск API сервера
 
-`gas_leak_detection_batch (каждые 15 минут)`
-`├── check_for_new_videos     # Проверка новых видео`
-`├── backfill_processed_videos # Бэкфилл`
-`├── process_videos_batch      # DockerOperator обработка`
-`└── cleanup_old_videos        # Очистка старых файлов`
+##### Вариант А: Запуск в фоне (рекомендуется)
+```bash
+nohup python3 -m src.main --mode api > logs/api.log 2>&1 &
 
-Настройка Airflow:
+##### Вариант Б: Запуск через systemd (автозапуск после перезагрузки)
+```bash
+cat > /etc/systemd/system/gas-leak-api.service << 'EOF'
+[Unit]
+Description=Gas Leak Detection API
+After=network.target
 
-`pip install apache-airflow`
-`airflow db init`
-`airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com`
-`cp dags/gas_leak_detection_dag.py ~/airflow/dags/`
-`airflow webserver -p 8080`
-`airflow scheduler`
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/gas-leak
+ExecStart=/usr/bin/python3 -m src.main --mode api
+Restart=always
+RestartSec=10
 
-## Идемпотентность и Бэкфилл
+[Install]
+WantedBy=multi-user.target
+EOF
 
-Механизм идемпотентности:
+systemctl daemon-reload
+systemctl enable gas-leak-api
+systemctl start gas-leak-api
 
-`# Структура`
-`data/processed/`
-`├── video1.mp4.done`
-`├── video2.mp4.done`
-`└── video3.mp4.done`
+##### Вариант В: Запуск через Docker Compose (полный стек)
+```bash
+docker compose -f docker/docker-compose.full.yml up -d
 
-Бэкфилл:
+#### Шаг 8: Проверка работоспособности
 
-`python scripts/backfill.py --input-dir ./data/input_videos --output-dir ./data/results`
+```bash
+curl http://localhost:8000/health
 
-Результат - манифест:
+{"status":"healthy","timestamp":"2026-04-23T20:37:57.949452"}
 
-`{`
-`  "backfill_timestamp": "2024-01-01T12:00:00",`
-`  "total_videos": 10,`
-`  "processed_count": 7,`
-`  "failed_count": 1,`
-`  "videos": [...]`
-`}`
+#### Шаг 9: Доступ из браузера
 
-## Переменные окружения (Config.py)
+Сервис	URL
+API сервер	http://89.108.78.157:8000
+Health check	http://89.108.78.157:8000/health
+Swagger документация	http://89.108.78.157:8000/docs
+Полезные команды для управления
+```bash
+tail -f /opt/gas-leak/logs/api.log
 
-| Переменная | Описание | Значение по умолчанию |
-|------------|----------|----------------------|
-| ENVIRONMENT | Среда запуска | development |
-| LOG_LEVEL | Уровень логирования | INFO |
-| USE_GPU | Использовать GPU | false |
-| DATABASE_URL | URL подключения к БД | sqlite:///./gas_leak.db |
-| REDIS_URL | URL подключения к Redis | redis://localhost:6379/0 |
-| CONFIDENCE_THRESHOLD | Порог уверенности модели | 0.5 |
-| BATCH_SIZE | Размер батча для обработки | 32 |
-| IMAGE_SIZE | Размер входного изображения | (224, 224) |
-| MAX_WORKERS | Максимум воркеров | 4 |
-| PROCESSING_INTERVAL | Интервал обработки (сек) | 300 |
+systemctl status gas-leak-api
 
-Использование в коде:
+systemctl restart gas-leak-api
 
-`from config.config import config`
+pkill -f "src.main"
 
-`print(config.model.confidence_threshold)  # 0.5`
-`print(config.model.device)                 # 'cpu' или 'cuda'`
-`print(config.batch.supported_formats)      # ('.mp4', '.avi', '.mov')`
+ps aux | grep python
+
+### 🛠️ Устранение неполадок
+
+| Проблема | Решение |
+|----------|---------|
+| Порт 8000 уже занят | `lsof -i :8000` → `kill -9 <PID>` |
+| Ошибка импорта `cv2` | `pip install opencv-python-headless --break-system-packages` |
+| Модель не загружается | Проверить: `ls -la models/thermal_model.pth` |
+| Нет доступа к порту извне | Открыть порт: `ufw allow 8000` |
+| `ModuleNotFoundError: No module named 'src'` | `export PYTHONPATH="${PYTHONPATH}:$(pwd)"` |
+| Процесс умирает после закрытия SSH | Использовать `nohup` или systemd сервис |
+| Docker образ не собирается | Использовать `opencv-python-headless` вместо `opencv-python` |
+| Ошибка `address already in use` | `pkill -f "src.main"` → запустить заново |
+| Тесты не проходят | `pip install pytest pytest-cov --break-system-packages` |
+| `gdown` не скачивает модель | Скачать вручную по ссылке: https://drive.google.com/file/d/1oPftKdKgtSaGc9__v9eoGHnhqM5JcHWk/view |
+
+## 📁 Структура проекта
+GAZ_LEAK_V2/
+│
+├── .github/workflows/ > CI/CD пайплайны GitHub Actions
+│ └── deploy.yml > Автоматический деплой на сервер
+│
+├── config/ > Конфигурация проекта
+│ ├── init.py
+│ └── config.py > Централизованный конфиг (все переменные)
+│
+├── dags/ > Airflow DAG для оркестрации
+│ └── gas_leak_detection_dag.py
+│
+├── docker/ > Docker файлы для контейнеризации
+│ ├── Dockerfile.app > Образ приложения
+│ ├── docker-compose.full.yml > Полный стек (API, worker, БД, Redis, Airflow, Nginx)
+│ └── nginx.conf > Reverse proxy конфигурация
+│
+├── models/ > Обученные модели
+│ └── thermal_model.pth > Веса модели ResNet18 (44 MB)
+│
+├── requirements/ > Зависимости Python
+│ ├── base.txt > Основные зависимости
+│ ├── dev.txt > Для разработки (тесты, линтеры)
+│ └── prod.txt > Для production
+│
+├── scripts/ > Вспомогательные скрипты
+│ ├── backfill.py > Бэкфилл (восстановление состояния)
+│ ├── deploy.sh > Скрипт деплоя
+│ └── run_checks.sh > Проверка системы
+│
+├── src/ > Исходный код (Clean Architecture)
+│ ├── init.py
+│ │
+│ ├── api/ > API слой (входные данные)
+│ │ ├── init.py
+│ │ └── batch_api.py > FastAPI эндпоинты
+│ │
+│ ├── cli/ > CLI слой (командная строка)
+│ │ ├── init.py
+│ │ └── batch_process.py > CLI для батчевой обработки
+│ │
+│ ├── domain/ > Domain слой (ядро бизнес-логики)
+│ │ ├── init.py
+│ │ ├── entities.py > Бизнес-сущности
+│ │ └── interfaces.py > Абстракции (порт)
+│ │
+│ ├── infrastructure/ > Infrastructure слой (реализации)
+│ │ ├── init.py
+│ │ ├── model_inference.py > PyTorch модель
+│ │ ├── repository.py > SQLite / PostgreSQL хранилище
+│ │ └── video_processor.py > OpenCV обработка видео
+│ │
+│ ├── usecases/ > Use Cases слой (бизнес-логика)
+│ │ ├── init.py
+│ │ ├── batch_process.py > Батчевая обработка
+│ │ └── detect_leak.py > Детекция утечки
+│ │
+│ └── main.py > Точка входа (CLI аргументы)
+│
+├── tests/ > Тесты
+│ ├── init.py
+│ ├── unit/ > Юнит-тесты (32 теста)
+│ │ ├── test_batch_process.py
+│ │ ├── test_detect_leak.py
+│ │ ├── test_model_inference.py
+│ │ ├── test_repository.py
+│ │ ├── test_api_endpoints.py
+│ │ └── ...
+│ └── fixtures/ > Тестовые данные
+│ └── test_image.png
+│
+├── data/ > Данные (создаётся при запуске)
+│ ├── input_videos/ > Видео для обработки
+│ ├── processed/ > Маркеры обработанных видео (.done)
+│ └── results/ > Результаты детекции
+│
+├── logs/ > Логи приложения
+│
+├── .env.example > Пример переменных окружения
+├── .gitignore
+├── Makefile
+└── README.md
+
+## Направление зависимостей (по Clean Architecture)
+Внешний мир (HTTP/CLI) → API/CLI → Use Cases → Domain
+↓
+Infrastructure (реализации)
+
+**Правило:** Зависимости идут только внутрь. Domain слой НЕ зависит от API, CLI или Infrastructure.
+
+## 📊 Тестирование
+
+### Что проверяют тесты
+
+| Тест | Что проверяет |
+|------|---------------|
+| `test_batch_process.py` | Идемпотентность, обработку новых видео, пропуск уже обработанных |
+| `test_detect_leak.py` | Детекцию утечки, порог срабатывания (0.5), батчевую обработку |
+| `test_model_inference.py` | Загрузку модели, предсказание на одном изображении, батчевый инференс |
+| `test_repository.py` | Сохранение детекций, сохранение батчевых задач, получение pending задач, обновление статусов |
+| `test_api_endpoints.py` | Health check, Swagger документацию, обработку видео, батчевую обработку, получение результатов |
+
+### Покрытие кода тестами
+
+**Итоговое покрытие: 73%** (выше требуемых 70%)
+
+| Компонент | Покрытие |
+|-----------|----------|
+| API (batch_api.py) | 91% |
+| Domain Entities | 98% |
+| Use Cases (batch_process) | 92% |
+| Use Cases (detect_leak) | 90% |
+| Model Inference | 95% |
+| Repository | 98% |
+| **TOTAL** | **73%** |
+
+## 📄 Лицензия
+
+MIT License
+
+Copyright (c) 2026 Evgeniy
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## 🔗 Ссылка на репозиторий
+
+**GitHub:** [Evgeniy3252834/GAZ_LEAK_V2](https://github.com/Evgeniy3252834/GAZ_LEAK_V2)
+
+---
+
+© 2026 Gas Leak Detection Team
