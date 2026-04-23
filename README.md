@@ -143,20 +143,6 @@ curl http://localhost:8000/health
 ```bash
 pytest tests/unit/ -v --cov=src --cov-report=term
 ```
-Ожидаемый результат:
-
-Name                                    Stmts   Miss  Cover
------------------------------------------------------------
-src/api/batch_api.py                      68      6    91%
-src/domain/entities.py                    49      1    98%
-src/usecases/batch_process.py             50      4    92%
-src/usecases/detect_leak.py               48      5    90%
-src/infrastructure/model_inference.py     55      3    95%
-src/infrastructure/repository.py          55      1    98%
------------------------------------------------------------
-TOTAL                                    491    146    73%
-
-============================== 32 passed in 5.78s ==============================
 
 ## 🚀 Как задеплоить на сервер
 
