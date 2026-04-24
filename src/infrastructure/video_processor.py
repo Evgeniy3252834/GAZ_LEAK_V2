@@ -15,7 +15,15 @@ class OpenCVVideoProcessor(VideoProcessorInterface):
     def extract_frames(self, video_path: Path, interval_sec: float = 1.0) -> List[VideoFrame]:
         cap = cv2.VideoCapture(str(video_path))
         fps = cap.get(cv2.CAP_PROP_FPS)
+        
+        # Fix для Windows - если fps = 0, используем значение по умолчанию
+        if fps <= 0:
+            logger.warning(f"Invalid FPS: {fps}, using default 1.0")
+            fps = 1.0
+        
         frame_interval = int(fps * interval_sec)
+        if frame_interval == 0:
+            frame_interval = 1
         
         frames = []
         frame_count = 0
@@ -26,11 +34,9 @@ class OpenCVVideoProcessor(VideoProcessorInterface):
                 break
             
             if frame_count % frame_interval == 0:
-                # Конвертируем в PIL Image и затем в bytes
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 pil_image = Image.fromarray(frame_rgb)
                 
-                # Сохраняем в bytes
                 img_byte_arr = io.BytesIO()
                 pil_image.save(img_byte_arr, format='PNG')
                 
@@ -55,7 +61,7 @@ class OpenCVVideoProcessor(VideoProcessorInterface):
             'height': int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
             'fps': cap.get(cv2.CAP_PROP_FPS),
             'frame_count': int(cap.get(cv2.CAP_PROP_FRAME_COUNT)),
-            'duration': cap.get(cv2.CAP_PROP_FRAME_COUNT) / cap.get(cv2.CAP_PROP_FPS)
+            'duration': cap.get(cv2.CAP_PROP_FRAME_COUNT) / cap.get(cv2.CAP_PROP_FPS) if cap.get(cv2.CAP_PROP_FPS) > 0 else 0
         }
         cap.release()
         return metadata
