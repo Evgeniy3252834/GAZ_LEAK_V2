@@ -1,0 +1,59 @@
+name: Run Unit Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender1 libgomp1 ffmpeg
+      
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install opencv-python-headless fastapi uvicorn python-dotenv pillow numpy
+          pip install pytest pytest-cov
+      
+      - name: Download model
+        run: |
+          mkdir -p models
+          pip install gdown
+          gdown "https://drive.google.com/uc?id=1oPftKdKgtSaGc9__v9eoGHnhqM5JcHWk" -O models/thermal_model.pth
+      
+      - name: Create test directories
+        run: |
+          mkdir -p data/input_videos data/processed data/results logs
+      
+      - name: Run tests with coverage
+        run: |
+          pytest tests/unit/ -v --cov=src --cov-report=xml --cov-report=term
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
